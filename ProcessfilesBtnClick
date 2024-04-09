@@ -1,0 +1,222 @@
+Public Sub ProcessFiles()
+   
+    Dim i As Long
+    Dim j As Long
+    Dim k As Long
+    Dim lngRows As Long
+    Dim lngRow As Long
+    Dim lngActionRow As Long
+    Dim lngGroupRow As Long
+    Dim lngComa As Long
+    Dim strInputPath As String
+    Dim strOutputPath As String
+    Dim strFile As String
+    Dim strEmpID As String
+    Dim strEmpType As String
+    Dim strOwnerNameP As String
+    Dim strGroups As String
+    Dim strReferenceID As String
+    Dim blnOK As Boolean
+    Dim wbkInputFile As Workbook
+    Dim wksOutputFile As Workbook
+   
+    lngRows = ThisWorkbook.Sheets("Setup").[B1048576].End(xlUp).Row
+   
+    Application.ScreenUpdating = False
+   
+    ThisWorkbook.Sheets("Setup").Cells.Font.ColorIndex = 1
+   
+    For i = 4 To lngRows
+        On Error Resume Next
+        Application.DisplayAlerts = False
+        ThisWorkbook.Sheets("F1").Delete
+        ThisWorkbook.Sheets("F2").Delete
+        ThisWorkbook.Sheets("F3").Delete
+        Application.DisplayAlerts = True
+        On Error GoTo 0
+       
+        blnOK = True
+        strInputPath = ThisWorkbook.Sheets("Setup").Cells(i, "B")
+        If Right(strInputPath, 1) <> "\" Then
+            strInputPath = strInputPath & "\"
+        End If
+       
+        If Not FSOFolderExists(strInputPath) Then
+            blnOK = False
+            ThisWorkbook.Sheets("Setup").Cells(i, "B").Font.ColorIndex = 3
+        End If
+       
+        strFile = Trim(ThisWorkbook.Sheets("Setup").Cells(i, "C"))
+        If Not FSOFileExists(strInputPath & strFile) Then
+            blnOK = False
+            ThisWorkbook.Sheets("Setup").Cells(i, "C").Font.ColorIndex = 3
+        Else
+            Set wbkInputFile = Application.Workbooks.Open(strInputPath & strFile, True, True)
+            wbkInputFile.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+            ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count).Name = "F1"
+            wbkInputFile.Saved = True
+            wbkInputFile.Close
+        End If
+       
+        strFile = Trim(ThisWorkbook.Sheets("Setup").Cells(i, "D"))
+        If Not FSOFileExists(strInputPath & strFile) Then
+            blnOK = False
+            ThisWorkbook.Sheets("Setup").Cells(i, "D").Font.ColorIndex = 3
+        Else
+            Set wbkInputFile = Application.Workbooks.Open(strInputPath & strFile, True, True)
+            wbkInputFile.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+            ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count).Name = "F2"
+            wbkInputFile.Saved = True
+            wbkInputFile.Close
+        End If
+       
+        strFile = Trim(ThisWorkbook.Sheets("Setup").Cells(i, "E"))
+        If Not FSOFileExists(strInputPath & strFile) Then
+            blnOK = False
+            ThisWorkbook.Sheets("Setup").Cells(i, "E").Font.ColorIndex = 3
+        Else
+            Set wbkInputFile = Application.Workbooks.Open(strInputPath & strFile, True, True)
+            wbkInputFile.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+            ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count).Name = "F3"
+            wbkInputFile.Saved = True
+            wbkInputFile.Close
+        End If
+       
+        If blnOK Then
+            ThisWorkbook.Sheets("Output").Select
+           
+            lngRow = 3
+            ThisWorkbook.Sheets("Output").Rows("3:1048576").Delete
+            For j = 2 To ThisWorkbook.Sheets("F2").[A1048576].End(xlUp).Row
+                strEmpID = Trim(ThisWorkbook.Sheets("F2").Cells(j, "L"))
+                ThisWorkbook.Sheets("Output").Cells(lngRow, "A") = Mid(strEmpID, 2)
+                ThisWorkbook.Sheets("Output").Cells(lngRow, "D") = strEmpID
+               
+                strEmpType = Trim(ThisWorkbook.Sheets("F2").Cells(j, "K"))
+                ThisWorkbook.Sheets("Output").Cells(lngRow, "B") = strEmpType
+               
+                If UCase(strEmpType) = "FTE" Then
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "E") = "Full-time Employee"
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "F") = "FTE_Poland_FTE"
+                Else
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "E") = "External"
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "F") = "External"
+                End If
+               
+                strOwnerNameP = Trim(ThisWorkbook.Sheets("F2").Cells(j, "J"))
+                ThisWorkbook.Sheets("Output").Cells(lngRow, "C") = strOwnerNameP
+                lngComa = InStr(strOwnerNameP, ",")
+                If lngComa = 0 Then
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "I") = strOwnerNameP
+                Else
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "I") = Trim(Left(strOwnerNameP, lngComa - 1))
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "J") = Trim(Mid(strOwnerNameP, lngComa + 1))
+                End If
+               
+'                If Application.WorksheetFunction.CountIf(ThisWorkbook.Sheets("Setup").Columns("K"), "Y") = 1 Then
+'                    lngActionRow = Application.WorksheetFunction.Match("Y", ThisWorkbook.Sheets("Setup").Columns("K"), 0)
+'                    ThisWorkbook.Sheets("Output").Cells(lngRow, "G") = ThisWorkbook.Sheets("Setup").Cells(lngActionRow, "J")
+'                Else
+'                    ThisWorkbook.Sheets("Output").Cells(lngRow, "G") = "Add"
+'                End If
+                ThisWorkbook.Sheets("Output").Cells(lngRow, "G") = ThisWorkbook.Sheets("Setup").[K3]
+               
+                strGroups = "||"
+                lngGroupRow = ThisWorkbook.Sheets("F1").[B1048576].End(xlUp).Row
+                For k = 2 To lngGroupRow
+                    If UCase(Trim(ThisWorkbook.Sheets("F1").Cells(j, "D"))) = UCase(strEmpID) Then
+                        strReferenceID = Trim(ThisWorkbook.Sheets("F1").Cells(j, "B"))
+                        If InStr(strGroups, "||" & strReferenceID & "||") = 0 Then
+                            strGroups = strGroups & strReferenceID & "||"
+                        End If
+                    End If
+                    If UCase(Trim(ThisWorkbook.Sheets("F1").Cells(j, "F"))) = UCase(strEmpID) Then
+                        strReferenceID = Trim(ThisWorkbook.Sheets("F1").Cells(j, "B"))
+                        If InStr(strGroups, "||" & strReferenceID & "||") = 0 Then
+                            strGroups = strGroups & strReferenceID & "||"
+                        End If
+                    End If
+                    If UCase(Trim(ThisWorkbook.Sheets("F1").Cells(j, "H"))) = UCase(strEmpID) Then
+                        strReferenceID = Trim(ThisWorkbook.Sheets("F1").Cells(j, "B"))
+                        If InStr(strGroups, "||" & strReferenceID & "||") = 0 Then
+                            strGroups = strGroups & strReferenceID & "||"
+                        End If
+                    End If
+                    If UCase(Trim(ThisWorkbook.Sheets("F1").Cells(j, "J"))) = UCase(strEmpID) Then
+                        strReferenceID = Trim(ThisWorkbook.Sheets("F1").Cells(j, "B"))
+                        If InStr(strGroups, "||" & strReferenceID & "||") = 0 Then
+                            strGroups = strGroups & strReferenceID & "||"
+                        End If
+                    End If
+                Next k
+                If strGroups <> "||" Then
+                    strGroups = Mid(strGroups, 3, Len(strGroups) - 4)
+                    ThisWorkbook.Sheets("Output").Cells(lngRow, "H") = strGroups
+                End If
+               
+                lngRow = lngRow + 1
+            Next j
+        End If
+       
+        blnOK = True
+        strOutputPath = ThisWorkbook.Sheets("Setup").Cells(i, "F")
+        If Right(strOutputPath, 1) <> "\" Then
+            strOutputPath = strOutputPath & "\"
+        End If
+       
+        If Not FSOFolderExists(strOutputPath) Then
+            blnOK = False
+            ThisWorkbook.Sheets("Setup").Cells(i, "F").Font.ColorIndex = 3
+        Else
+            strFile = Trim(ThisWorkbook.Sheets("Setup").Cells(i, "G"))
+       
+            Application.DisplayAlerts = False
+            ThisWorkbook.Sheets("Output").Copy
+            ActiveWorkbook.SaveAs Filename:=strOutputPath & strFile, FileFormat:=xlOpenXMLWorkbook, CreateBackup:=False
+            ActiveWorkbook.Close
+            Application.DisplayAlerts = True
+           
+            ThisWorkbook.Sheets("Setup").Cells(i, "G").Font.ColorIndex = 14
+        End If
+    Next i
+   
+    Application.ScreenUpdating = True
+   
+End Sub
+
+Public Function FSOFolderExists(strPath As String) As Boolean
+   
+    Dim objFSO As Object
+   
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+   
+    If objFSO.FolderExists(strPath) Then
+        FSOFolderExists = True
+    Else
+        FSOFolderExists = False
+    End If
+   
+    Set objFSO = Nothing
+   
+End Function
+
+Public Function FSOFileExists(strPath As String) As Boolean
+   
+    Dim objFSO As Object
+   
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+   
+    If objFSO.FileExists(strPath) Then
+        FSOFileExists = True
+    Else
+        FSOFileExists = False
+    End If
+   
+    Set objFSO = Nothing
+   
+End Function
+
+Sub Macro2()
+'
+' Macro2 Macro
+'
